@@ -1,0 +1,49 @@
+<launch>
+  <!-- Map server -->
+  <arg default="$(find drive_robot)/maps/map.yaml" name="map_file"/>
+  <node args="$(arg map_file)" name="map_server" pkg="map_server" type="map_server"/>
+  <!-- Place map frame at odometry frame -->
+  <node args="0 0 0 -1.5707 0 0 map odom 100" name="map_odom_broadcaster" pkg="tf" type="static_transform_publisher"/>
+  <!-- Localization-->
+  <node name="amcl" output="screen" pkg="amcl" type="amcl">
+    <remap from="scan" to="drive_robot/laser/scan"/>
+    <!-- Odometry model parameters -->
+    <param name="odom_alpha1" value="0.0005"/>
+    <param name="odom_alpha2" value="0.0005"/>
+    <param name="odom_alpha3" value="0.0005"/>
+    <param name="odom_alpha4" value="0.0005"/>
+    <param name="odom_frame_id" value="odom"/>
+    <param name="odom_model_type" value="diff-corrected"/>
+    <param name="base_frame_id" value="robot_footprint"/>
+    <param name="global_frame_id" value="map"/>
+    <!-- Laser model parameters -->
+    <param name="laser_model_type" value="likelihood_field"/>
+    <param name="laser_likelihood_max_dist" value="2.0"/>
+    <!-- Laser -->
+    <param name="laser_max_beams" value="20"/>
+    <param name="laser_z_rand" value="0.05"/>
+    <param name="laser_z_hit" value="0.95"/>
+    <!-- Overall filter parameters -->
+    <param name="min_particles" value="50"/>
+    <param name="max_particles" value="200"/>
+    <param name="update_min_a" value="0.1"/>
+    <param name="update_min_d" value="0.25"/>
+    <param name="transform_tolerance" value="0.3"/>
+    <param name="initial_pose_x" value="0.0"/>
+    <param name="initial_pose_y" value="0.1"/>
+    <param name="initial_pose_a" value="-1.5707"/>
+  </node>
+  <!-- Move base -->
+  <node name="move_base" output="screen" pkg="move_base" respawn="false" type="move_base">
+    <rosparam command="load" file="$(find drive_robot)/config/costmap_common_params.yaml" ns="global_costmap"/>
+    <rosparam command="load" file="$(find drive_robot)/config/costmap_common_params.yaml" ns="local_costmap"/>
+    <rosparam command="load" file="$(find drive_robot)/config/local_costmap_params.yaml"/>
+    <rosparam command="load" file="$(find drive_robot)/config/global_costmap_params.yaml"/>
+    <rosparam command="load" file="$(find drive_robot)/config/base_local_planner_params.yaml"/>
+    <remap from="cmd_vel" to="cmd_vel"/>
+    <remap from="odom" to="odom"/>
+    <remap from="scan" to="drive_robot/laser/scan"/>
+    <param name="base_global_planner" type="string" value="navfn/NavfnROS"/>
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/>
+  </node>
+</launch>
